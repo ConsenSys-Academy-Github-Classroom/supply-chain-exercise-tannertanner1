@@ -2,8 +2,8 @@
 pragma solidity >=0.5.16 <0.9.0;
 
 contract SupplyChain {
-  address owner; // <owner>
-  uint skuCount; // <skuCount>
+  address public owner; // <owner>
+  uint public skuCount; // <skuCount>
   mapping(uint => Item) items; // <items mapping>
   enum State { ForSale, Sold, Shipped, Received } // <enum State: ForSale, Sold, Shipped, Received>
 
@@ -28,7 +28,7 @@ contract SupplyChain {
     _;
   }
   modifier verifyCaller(address _address) { 
-    require(msg.sender == _address, "Caller is not the address provided"); // require (msg.sender == _address); 
+    require(msg.sender == _address, "Caller not address provided"); // require (msg.sender == _address); 
     _;
   }
   modifier paidEnough(uint _price) { 
@@ -42,19 +42,19 @@ contract SupplyChain {
     _;
   }
   modifier forSale(uint _sku) { // modifier forSale
-   require(items[_sku].state == State.ForSale, "Item is not for sale");
+   require(items[_sku].state == State.ForSale, "Item not for sale");
    _;
   }
   modifier sold(uint _sku) { // modifier sold(uint _sku) 
-    require(items[_sku].state == State.Sold, "Item is not sold");
+    require(items[_sku].state == State.Sold, "Item not sold");
    _;
   }
   modifier shipped(uint _sku) { // modifier shipped(uint _sku) 
-    require(items[_sku].state == State.Shipped, "Item is not shipped");
+    require(items[_sku].state == State.Shipped, "Item not shipped");
     _;
   }
   modifier received(uint _sku) { // modifier received(uint _sku) 
-    require(items[_sku].state == State.Received, "Item is not received");
+    require(items[_sku].state == State.Received, "Item not received");
    _;
   }
 
@@ -76,18 +76,24 @@ contract SupplyChain {
     emit LogForSale(skuCount); // 3. emit the appropriate event
     return true; // 4. return true
   }
+
+  // function buyItem(uint sku) public payable forSale(sku) paidEnough(items[sku].price) {
   function buyItem(uint sku) public payable forSale(sku) paidEnough(items[sku].price) checkValue(sku) { // 1. it should be payable in order to receive refunds
+    // uint price = items[sku].price;
+    // uint amountToRefund = msg.value - price;
     items[sku].seller.transfer(items[sku].price); // 2. this should transfer money to the seller
     items[sku].buyer = msg.sender; // 3. set the buyer as the person who called this transaction
     items[sku].state = State.Sold; // 4. set the state to Sold
     // 5. this function should use 3 modifiers to check: if the item is for sale, if the buyer paid enough, and the value after the function is called to make sure the buyer is refunded any excess ether sent
     emit LogSold(sku); // 6. call the event associated with this function
   }
+
   function shipItem(uint sku) public isOwner sold(sku) { // 1. add modifiers to check: the item is sold already and the person calling this function is the seller
-    // require(items[sku].buyer != address(0), "Buyer address is not set");
+    // require(items[sku].buyer != address(0), "Buyer address not set");
     items[sku].state = State.Shipped; // 2. change the state of the item to shipped
     emit LogShipped(sku); // 3. call the event associated with this function
   }
+
   function receiveItem(uint sku) public verifyCaller(items[sku].buyer) shipped(sku) { // 1. add modifiers to check: the item is shipped already and the person calling this function is the buyer
     items[sku].state = State.Received; // 2. change the state of the item to received
     emit LogReceived(sku); // 3. call the event associated with this function
