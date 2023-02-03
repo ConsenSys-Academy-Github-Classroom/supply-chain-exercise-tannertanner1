@@ -62,7 +62,7 @@ contract SupplyChain {
     owner = msg.sender; // 1. set the owner to the transaction sender
     skuCount = 0; // 2. initialize the sku count to 0. question, is this necessary?
   }
-  
+
   function addItem(string memory _name, uint _price) public returns(bool) {
     items[skuCount] = Item({ // 1. create a new item and put in array
       name: _name,
@@ -77,8 +77,6 @@ contract SupplyChain {
     return true; // 4. return true
   }
   function buyItem(uint sku) public payable forSale(sku) paidEnough(items[sku].price) checkValue(sku) { // 1. it should be payable in order to receive refunds
-    // uint price = items[sku].price;
-    // uint amountToRefund = msg.value - price;
     items[sku].seller.transfer(items[sku].price); // 2. this should transfer money to the seller
     items[sku].buyer = msg.sender; // 3. set the buyer as the person who called this transaction
     items[sku].state = State.Sold; // 4. set the state to Sold
