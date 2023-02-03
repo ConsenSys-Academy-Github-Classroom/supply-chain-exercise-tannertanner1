@@ -4,7 +4,7 @@ pragma solidity >=0.5.16 <0.9.0;
 contract SupplyChain {
   address public owner; // <owner>
   uint public skuCount; // <skuCount>
-  mapping(uint => Item) items; // <items mapping>
+  mapping(uint => Item) public items; // <items mapping>
   enum State { ForSale, Sold, Shipped, Received } // <enum State: ForSale, Sold, Shipped, Received>
 
   struct Item { // <struct Item: name, sku, price, state, seller, and buyer>
@@ -17,10 +17,10 @@ contract SupplyChain {
   }
 
   /* events */
-  event LogForSale(uint sku); // <LogForSale event: sku arg>
-  event LogSold(uint sku); // <LogSold event: sku arg>
-  event LogShipped(uint sku); // <LogShipped event: sku arg>
-  event LogReceived(uint sku); // <LogReceived event: sku arg>
+  event LogForSale(uint indexed sku); // <LogForSale event: sku arg>
+  event LogSold(uint indexed sku); // <LogSold event: sku arg>
+  event LogShipped(uint indexed sku); // <LogShipped event: sku arg>
+  event LogReceived(uint indexed sku); // <LogReceived event: sku arg>
 
   /* modifiers */
   modifier isOwner { // <modifier: isOwner>
@@ -62,7 +62,7 @@ contract SupplyChain {
     owner = msg.sender; // 1. set the owner to the transaction sender
     skuCount = 0; // 2. initialize the sku count to 0. question, is this necessary?
   }
-
+  
   function addItem(string memory _name, uint _price) public returns(bool) {
     items[skuCount] = Item({ // 1. create a new item and put in array
       name: _name,
@@ -76,8 +76,6 @@ contract SupplyChain {
     emit LogForSale(skuCount); // 3. emit the appropriate event
     return true; // 4. return true
   }
-
-  // function buyItem(uint sku) public payable forSale(sku) paidEnough(items[sku].price) {
   function buyItem(uint sku) public payable forSale(sku) paidEnough(items[sku].price) checkValue(sku) { // 1. it should be payable in order to receive refunds
     // uint price = items[sku].price;
     // uint amountToRefund = msg.value - price;
@@ -87,14 +85,11 @@ contract SupplyChain {
     // 5. this function should use 3 modifiers to check: if the item is for sale, if the buyer paid enough, and the value after the function is called to make sure the buyer is refunded any excess ether sent
     emit LogSold(sku); // 6. call the event associated with this function
   }
-
-  function shipItem(uint sku) public isOwner sold(sku) { // 1. add modifiers to check: the item is sold already and the person calling this function is the seller
-    // require(items[sku].buyer != address(0), "Buyer address not set");
+  function shipItem(uint sku) public sold(sku) verifyCaller(items[sku].seller) { // 1. add modifiers to check: the item is sold already and the person calling this function is the seller
     items[sku].state = State.Shipped; // 2. change the state of the item to shipped
     emit LogShipped(sku); // 3. call the event associated with this function
   }
-
-  function receiveItem(uint sku) public verifyCaller(items[sku].buyer) shipped(sku) { // 1. add modifiers to check: the item is shipped already and the person calling this function is the buyer
+  function receiveItem(uint sku) public shipped(sku) verifyCaller(items[sku].buyer) { // 1. add modifiers to check: the item is shipped already and the person calling this function is the buyer
     items[sku].state = State.Received; // 2. change the state of the item to received
     emit LogReceived(sku); // 3. call the event associated with this function
   }
